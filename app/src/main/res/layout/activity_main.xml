@@ -37,6 +37,7 @@
         android:layout_alignTop="@+id/ocr_button"
         android:layout_marginTop="153dp"
         android:src="@drawable/mic"
+        android:onClick="getspeechinput"
     />
 
 
