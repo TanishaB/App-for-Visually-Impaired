@@ -1,15 +1,27 @@
 package com.example.vision;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.PopupMenu;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
+import android.Manifest;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.BatteryManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 
 import org.opencv.android.OpenCVLoader;
-import android.speech.tts.TextToSpeech;
 import android.widget.ImageView;
 import android.speech.RecognizerIntent;
 import android.widget.Toast;
@@ -31,6 +43,25 @@ public class MainActivity extends AppCompatActivity {
     private Button camera_button;
     private Button ocr_button;
     private ImageView mic_button;
+    private boolean showBatteryLowNotification = true;
+
+    //private Ringtone ringtone;
+    private static final int REQUEST_CALL=1;
+
+
+    private final BroadcastReceiver Batterynot=new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            //get battery level
+            int level= intent.getIntExtra(BatteryManager.EXTRA_LEVEL,0);
+            //check if the battery is low
+            if (level <=20 && showBatteryLowNotification){
+                Toast.makeText(MainActivity.this, "Battery low detected", Toast.LENGTH_SHORT).show();
+                makeCall();
+            }
+
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,6 +86,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         mic_button=findViewById(R.id.mic_button);
+        this.registerReceiver(this.Batterynot,new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
     }
 
     public void getspeechinput(View view){
@@ -92,6 +124,51 @@ public class MainActivity extends AppCompatActivity {
         else{
             new TTS().initializeTTS("Sorry I didn't understand. Please press mic button and say search for knowing what's around you. Or say read to let me help you know the content directed by the camera.", MainActivity.this);
         }
+    }
+
+    private void makeCall(){
+
+        SharedPreferences sharedPreferences = getSharedPreferences("MySharedPref", MODE_PRIVATE);
+        String ENUM = sharedPreferences.getString("ENUM", "NONE");
+        //if call permission is not granted;hence we give permission
+        if(ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CALL_PHONE)!= PackageManager.PERMISSION_GRANTED){
+            ActivityCompat.requestPermissions(MainActivity.this,new String[]{Manifest.permission.CALL_PHONE}, REQUEST_CALL);
+        }
+        else{
+            Intent callIntent = new Intent(Intent.ACTION_CALL);
+            callIntent.setData(Uri.parse("tel:" + ENUM));
+            startActivity(callIntent);
+
+            showBatteryLowNotification = false;
+        }
+    }
+
+    //if call permission is already granted at the first place
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_CALL) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                makeCall();
+            } else {
+                Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    public void PopupMenu(View view) {
+        PopupMenu popupMenu = new PopupMenu(MainActivity.this, view);
+        popupMenu.getMenuInflater().inflate(R.menu.popup, popupMenu.getMenu());
+        popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                if (item.getItemId() == R.id.changeNum) {
+                    startActivity(new Intent(MainActivity.this, Emergency_no.class));
+                }
+                return true;
+            }
+        });
+        popupMenu.show();
     }
 
 }

@@ -5,6 +5,7 @@
 
 
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.CALL_PHONE" />
 
     <uses-feature
         android:name="android.hardware.camera"
@@ -28,6 +29,7 @@
         android:theme="@style/Theme.Vision">
         <activity android:name=".CameraActivity"></activity>
         <activity android:name=".OcrActivity"></activity>
+        <activity android:name=".Emergency_no"></activity>
         <activity android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
