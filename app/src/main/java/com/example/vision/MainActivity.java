@@ -20,11 +20,16 @@ import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
-
+import android.location.Location;
+import android.telephony.SmsManager;
+import com.google.android.gms.location.FusedLocationProviderClient;
 import org.opencv.android.OpenCVLoader;
 import android.widget.ImageView;
 import android.speech.RecognizerIntent;
 import android.widget.Toast;
+
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.tasks.OnSuccessListener;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -44,7 +49,9 @@ public class MainActivity extends AppCompatActivity {
     private Button ocr_button;
     private ImageView mic_button;
     private boolean showBatteryLowNotification = true;
-
+    FusedLocationProviderClient fusedLocationClient;
+    String myLocation;
+    SmsManager manager = SmsManager.getDefault();
     //private Ringtone ringtone;
     private static final int REQUEST_CALL=1;
 
@@ -55,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
             //get battery level
             int level= intent.getIntExtra(BatteryManager.EXTRA_LEVEL,0);
             //check if the battery is low
-            if (level <=20 && showBatteryLowNotification){
+            if (level <=87 && showBatteryLowNotification){
                 Toast.makeText(MainActivity.this, "Battery low detected", Toast.LENGTH_SHORT).show();
                 makeCall();
             }
@@ -127,16 +134,44 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void makeCall(){
-
         SharedPreferences sharedPreferences = getSharedPreferences("MySharedPref", MODE_PRIVATE);
-        String ENUM = sharedPreferences.getString("ENUM", "NONE");
+        String num1 = sharedPreferences.getString("num1", "NONE");
+        String num2 = sharedPreferences.getString("num2", "NONE");
+        String num3 = sharedPreferences.getString("num3", "NONE");
+
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        fusedLocationClient.getLastLocation()
+                .addOnSuccessListener(new OnSuccessListener<Location>() {
+                    @Override
+                    public void onSuccess(Location location) {
+                        if (location != null) {
+                            // Logic to handle location
+                            myLocation = "http://maps.google.com/maps?q=loc:"+location.getLatitude()+","+location.getLongitude();
+                        }else {
+                            myLocation = "Unable to Find Location :(";
+                        }
+                    }
+                });
+        if(!num1.equalsIgnoreCase("NONE")) {
+            manager.sendTextMessage(num1, null, "My phone's battery is low. This is my current location :\n" + myLocation, null, null);
+        }
+        if(!num2.equalsIgnoreCase("NONE")) {
+            manager.sendTextMessage(num2, null, "My phone's battery is low. This is my current location :\n" + myLocation, null, null);
+        }
+        if(!num3.equalsIgnoreCase("NONE")) {
+            manager.sendTextMessage(num3, null, "My phone's battery is low. This is my current location :\n" + myLocation, null, null);
+        }
+
         //if call permission is not granted;hence we give permission
         if(ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CALL_PHONE)!= PackageManager.PERMISSION_GRANTED){
             ActivityCompat.requestPermissions(MainActivity.this,new String[]{Manifest.permission.CALL_PHONE}, REQUEST_CALL);
         }
         else{
             Intent callIntent = new Intent(Intent.ACTION_CALL);
-            callIntent.setData(Uri.parse("tel:" + ENUM));
+            callIntent.setData(Uri.parse("tel:" + num1));
             startActivity(callIntent);
 
             showBatteryLowNotification = false;
